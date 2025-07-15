@@ -1,0 +1,9 @@
+FROM n8n-build-1752575419
+
+ENV N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+ENV N8N_RUNNERS_ENABLED=true
+
+EXPOSE 5678
+
+# run the container
+CMD ["n8n", "start"]

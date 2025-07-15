@@ -1,0 +1,57 @@
+FROM --platform=linux/amd64 debian:bookworm-slim AS staging
+
+# Supress interaction prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y curl \
+    && apt-get -y autoclean
+
+# (Required) Add a non-root user which will run applications with reduced priviledges
+RUN useradd --create-home -s /bin/bash n8n
+
+# Set working directory default to pythonuser home folder
+WORKDIR /home/n8n
+
+# (Required) Run everything bellow as a standard user
+USER n8n
+
+RUN curl --request GET -sL \
+    --url 'https://nodejs.org/download/release/v22.17.0/node-v22.17.0-linux-x64.tar.gz'\
+    --output '/home/n8n/node-v22.17.0-linux-x64.tar.gz'
+
+RUN tar -xvf /home/n8n/node-v22.17.0-linux-x64.tar.gz
+
+RUN mv node-v22.17.0-linux-x64 node-v22.17.0 && rm -rf node-v22.17.0-linux-x64.tar.gz
+
+
+FROM --platform=linux/amd64 debian:bookworm-slim
+
+# Supress interaction prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# (Required) Keep the image upgraded to the laest packages relases and clean up after upgrade
+RUN apt-get update && apt upgrade -y \
+    && apt-get autoclean \
+    && rm -rf /var/lib/apt/lists/*
+
+# (Required) Add a non-root user which will run applications with reduced priviledges
+RUN useradd --create-home -s /bin/bash n8n
+
+# Set working directory default to pythonuser home folder
+WORKDIR /home/n8n
+
+# (Required) Run everything bellow as a standard user
+USER n8n
+
+# (Required) Create nodejs directory on the host machine
+RUN mkdir node-v22.17.0
+
+# (Required) Copy nodejs files from staging
+COPY --from=staging /home/n8n/node-v22.17.0 /home/n8n/node-v22.17.0/
+
+# (Required) Add nodejs from n8n home folder to path
+ENV PATH="${PATH}:/home/n8n/node-v22.17.0/bin"
+
+# (Required) Install n8n
+RUN npm install n8n -g
